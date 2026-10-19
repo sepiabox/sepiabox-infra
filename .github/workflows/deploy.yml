@@ -68,8 +68,11 @@ jobs:
           az deployment group create \
             --resource-group "$RESOURCE_GROUP" \
             --name "sepiabox-shutdown-${GITHUB_RUN_ID}" \
-            --template-file shutdown/main.bicep \
-            --parameters runbookContentUri="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/automation/Stop-Sepiabox.ps1"
+            --template-file shutdown/main.bicep
+
+      # The template creates only the runbook's shell; a webhook needs a published runbook.
+      - name: Publish the runbook
+        run: RG="$RESOURCE_GROUP" AUTOMATION_ACCOUNT="$AUTOMATION_ACCOUNT" scripts/publish-runbook.sh
 
       # A webhook URL can only be read when it is generated, so the webhook and the action group
       # are created once, or again when rotate_webhook is set.
@@ -91,9 +94,10 @@ jobs:
             --resource-group "$RESOURCE_GROUP" \
             --name "sepiabox-shutdown-webhook-${GITHUB_RUN_ID}" \
             --template-file shutdown/main.bicep \
-            --parameters runbookContentUri="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/automation/Stop-Sepiabox.ps1" \
             --parameters webhookUri="$uri" \
             --output none
+          # Redeploying the template rewrites the runbook's shell, so publish its code again.
+          RG="$RESOURCE_GROUP" AUTOMATION_ACCOUNT="$AUTOMATION_ACCOUNT" scripts/publish-runbook.sh
 
   budget:
     needs: shutdown
