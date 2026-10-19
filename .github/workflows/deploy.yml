@@ -1,0 +1,104 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      rotate_webhook:
+        description: Create a new kill-switch webhook URL
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths: ['budget/**', 'shutdown/**', 'automation/**']
+  # Monthly redeploy renews the anomaly alert's one-year schedule.
+  schedule:
+    - cron: '17 6 1 * *'
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  RESOURCE_GROUP: rg-sepiabox
+  AUTOMATION_ACCOUNT: sepiabox-automation
+  ACTION_GROUP: sepiabox-shutdown
+
+jobs:
+  # The budget's 90% notification points at this kill switch, so it goes first.
+  shutdown:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      # OIDC: the Entra ID app has a federated credential for this repository's production environment.
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Automation account and runbook
+        run: |
+          az deployment group create \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "sepiabox-shutdown-${GITHUB_RUN_ID}" \
+            --template-file shutdown/main.bicep \
+            --parameters runbookContentUri="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/automation/Stop-Sepiabox.ps1"
+
+      # A webhook URL can only be read when it is generated, so the webhook and the action group
+      # are created once, or again when rotate_webhook is set.
+      - name: Create the webhook and action group if missing
+        env:
+          ROTATE: ${{ inputs.rotate_webhook || false }}
+        run: |
+          if [[ "$ROTATE" != "true" ]] && az monitor action-group show -g "$RESOURCE_GROUP" -n "$ACTION_GROUP" >/dev/null 2>&1; then
+            echo "Action group $ACTION_GROUP already exists; keeping its webhook."
+            exit 0
+          fi
+          account_id="$(az resource show -g "$RESOURCE_GROUP" -n "$AUTOMATION_ACCOUNT" \
+            --resource-type Microsoft.Automation/automationAccounts --query id -o tsv)"
+          # A webhook's URL cannot change, so drop any old one before creating the new one.
+          az resource delete --ids "${account_id}/webhooks/budget-90-percent" >/dev/null 2>&1 || true
+          uri="$(az rest --method post --url "https://management.azure.com${account_id}/webhooks/generateUri?api-version=2015-10-31" -o tsv)"
+          echo "::add-mask::$uri"
+          az deployment group create \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "sepiabox-shutdown-webhook-${GITHUB_RUN_ID}" \
+            --template-file shutdown/main.bicep \
+            --parameters runbookContentUri="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/automation/Stop-Sepiabox.ps1" \
+            --parameters webhookUri="$uri" \
+            --output none
+
+  budget:
+    needs: shutdown
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy budget and anomaly alert
+        env:
+          # Comma-separated list, e.g. "a@example.com,b@example.com".
+          ALERT_EMAILS: ${{ vars.BUDGET_ALERT_EMAILS }}
+        run: |
+          emails="$(jq -cn --arg list "$ALERT_EMAILS" '$list | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0))')"
+          if [[ "$emails" == "[]" ]]; then
+            echo "::error::Set the BUDGET_ALERT_EMAILS repository variable."
+            exit 1
+          fi
+          az deployment sub create \
+            --name "sepiabox-budget-${GITHUB_RUN_ID}" \
+            --location francecentral \
+            --template-file budget/main.bicep \
+            --parameters contactEmails="$emails"
