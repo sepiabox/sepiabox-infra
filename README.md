@@ -13,6 +13,22 @@ The app itself (Container Apps, PostgreSQL, Blob Storage, Service Bus) is descri
 - **GitHub to Azure access** through OIDC federated credentials. No secret is stored in GitHub.
 - **DNS** for `sepiabox.com` and `app.sepiabox.com`.
 
+## Budget and alerts
+
+[`budget/main.bicep`](budget/main.bicep) creates, at subscription scope:
+
+- the `sepiabox-monthly` budget: €50 a month, e-mails at 50% and 80% of actual cost and when the forecast reaches 100%;
+- the `sepiabox-daily-anomaly` alert: a daily e-mail when Cost Management detects unusual spending.
+
+[`deploy-budget.yml`](.github/workflows/deploy-budget.yml) deploys it on every push to `main` that touches `budget/`, on demand, and on the 1st of each month (which renews the anomaly alert's one-year schedule). It signs in with OIDC and needs these repository variables, plus a `production` environment:
+
+| Variable | Value |
+|---|---|
+| `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | Entra ID app with a federated credential for this repository's `production` environment |
+| `BUDGET_ALERT_EMAILS` | Comma-separated e-mail addresses for the alerts |
+
+CI compiles the Bicep and runs [`tests/budget.test.sh`](tests/budget.test.sh) on every pull request; it needs no Azure access.
+
 ## Region
 
 Everything runs in **France Central**, in one resource group: `rg-sepiabox`.
