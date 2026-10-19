@@ -12,6 +12,9 @@ param amount int = 50
 @description('First day of the first budget month (yyyy-MM-dd, always the 1st). Keep it fixed once deployed.')
 param budgetStartDate string = '2026-10-01'
 
+@description('Action group that runs the Stop-Sepiabox runbook (shutdown/main.bicep, S-030).')
+param shutdownActionGroupId string = '${subscription().id}/resourceGroups/rg-sepiabox/providers/Microsoft.Insights/actionGroups/sepiabox-shutdown'
+
 @description('Start of the anomaly alert schedule. Defaults to now, so every deployment renews it.')
 param anomalyStartDate string = utcNow('yyyy-MM-ddTHH:mm:ssZ')
 
@@ -41,6 +44,17 @@ resource budget 'Microsoft.Consumption/budgets@2023-11-01' = {
         threshold: 80
         thresholdType: 'Actual'
         contactEmails: contactEmails
+      }
+      // €45: shut down what is billed by use (S-030). Data is kept.
+      actual90: {
+        enabled: true
+        operator: 'GreaterThanOrEqualTo'
+        threshold: 90
+        thresholdType: 'Actual'
+        contactEmails: contactEmails
+        contactGroups: [
+          shutdownActionGroupId
+        ]
       }
       forecast100: {
         enabled: true

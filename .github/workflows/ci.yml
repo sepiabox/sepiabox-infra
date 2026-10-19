@@ -9,14 +9,42 @@ permissions:
   contents: read
 
 jobs:
-  budget:
+  templates:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Compile Bicep
+      - name: Compile and lint Bicep
         run: |
           az bicep install
-          az bicep build --file budget/main.bicep --outfile "$RUNNER_TEMP/budget.json"
-          az bicep lint --file budget/main.bicep
-      - name: Check the compiled budget and the deploy workflow
-        run: tests/budget.test.sh "$RUNNER_TEMP/budget.json"
+          for template in budget shutdown; do
+            az bicep build --file "$template/main.bicep" --outfile "$RUNNER_TEMP/$template.json"
+            az bicep lint --file "$template/main.bicep"
+          done
+      - name: Check the compiled templates and the deploy workflow
+        run: |
+          tests/budget.test.sh "$RUNNER_TEMP/budget.json"
+          tests/shutdown.test.sh "$RUNNER_TEMP/shutdown.json"
+
+  scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax check
+        run: for script in scripts/*.sh tests/*.sh; do bash -n "$script"; done
+      - name: ShellCheck
+        run: shellcheck scripts/*.sh tests/*.sh
+
+  runbook:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pester
+        shell: pwsh
+        run: |
+          Install-Module Pester -RequiredVersion 5.7.1 -Force -Scope CurrentUser -SkipPublisherCheck
+          Import-Module Pester -RequiredVersion 5.7.1
+          $config = New-PesterConfiguration
+          $config.Run.Path = 'tests'
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $config
