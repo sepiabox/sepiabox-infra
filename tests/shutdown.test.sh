@@ -4,6 +4,7 @@
 set -euo pipefail
 
 template="${1:?usage: $0 <compiled main.json>}"
+workflow="$(dirname "$0")/../.github/workflows/deploy.yml"
 failures=0
 
 check() {
@@ -41,6 +42,12 @@ check "action group name comes from actionGroupName" "$(jq -r '.name' <<<"$group
 check "actionGroupName is sepiabox-shutdown" "$(variable actionGroupName)" "sepiabox-shutdown"
 check "action group starts the runbook" "$(jq -r '.properties.automationRunbookReceivers[0].runbookName' <<<"$group")" "Stop-Sepiabox"
 check "action group calls the webhook" "$(jq -r '.properties.automationRunbookReceivers[0].serviceUri' <<<"$group")" "[parameters('webhookUri')]"
+
+# The runbook code is uploaded from the checkout, never fetched from a public URL (private repos).
+check "runbook has no content link" "$(jq '.properties | has("publishContentLink")' <<<"$runbook")" "false"
+check "template fetches nothing from raw.githubusercontent.com" "$(grep -c 'raw.githubusercontent.com' "$template" || true)" "0"
+check "workflow fetches nothing from raw.githubusercontent.com" "$(grep -c 'raw.githubusercontent.com' "$workflow" || true)" "0"
+check "workflow publishes the runbook after each shutdown deployment" "$(grep -c 'scripts/publish-runbook.sh' "$workflow")" "$(grep -c 'template-file shutdown/main.bicep' "$workflow")"
 
 if (( failures > 0 )); then
   echo "$failures check(s) failed"

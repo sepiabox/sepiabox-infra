@@ -4,9 +4,6 @@ targetScope = 'resourceGroup'
 
 param location string = resourceGroup().location
 
-@description('Raw URL of automation/Stop-Sepiabox.ps1, pinned to a commit.')
-param runbookContentUri string
-
 @description('Webhook URL from the Automation generateUri API. Empty keeps the existing webhook and action group.')
 @secure()
 param webhookUri string = ''
@@ -30,6 +27,8 @@ resource automation 'Microsoft.Automation/automationAccounts@2023-11-01' = {
   }
 }
 
+// Only the runbook's shell: scripts/publish-runbook.sh uploads and publishes its code from the
+// checked-out repository, so nothing depends on the repository being publicly readable.
 resource runbook 'Microsoft.Automation/automationAccounts/runbooks@2023-11-01' = {
   parent: automation
   name: 'Stop-Sepiabox'
@@ -37,9 +36,6 @@ resource runbook 'Microsoft.Automation/automationAccounts/runbooks@2023-11-01' =
   properties: {
     runbookType: 'PowerShell72'
     description: 'Stops the web ingress, PostgreSQL and the manifests queue; keeps all data.'
-    publishContentLink: {
-      uri: runbookContentUri
-    }
   }
 }
 

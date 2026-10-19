@@ -37,7 +37,7 @@ CI compiles and lints the Bicep, checks the compiled templates ([`tests/budget.t
 - the [`Stop-Sepiabox`](automation/Stop-Sepiabox.ps1) runbook (PowerShell 7.2), which disables the ingress of `sepiabox-web`, stops the `sepiabox-pg` PostgreSQL server and disables the `manifests` queue of `sepiabox-sb`;
 - the `budget-90-percent` webhook and the `sepiabox-shutdown` action group that calls it. The budget's 90% notification points at this action group.
 
-A webhook's URL can only be read when it is generated, so the deploy workflow creates the webhook and the action group once and leaves them alone afterwards. Run the workflow by hand with **rotate_webhook** to replace the URL. The runbook's code is published from the commit being deployed (`raw.githubusercontent.com`), so this repository must stay public or the runbook source must move.
+The template creates only the runbook's shell; [`scripts/publish-runbook.sh`](scripts/publish-runbook.sh) uploads and publishes its code from the checked-out repository after each deployment, so the repository can be private. A webhook's URL can only be read when it is generated, so the deploy workflow creates the webhook and the action group once and leaves them alone afterwards. Run the workflow by hand with **rotate_webhook** to replace the URL.
 
 ## Region
 
