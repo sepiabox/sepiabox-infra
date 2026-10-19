@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  budget:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile Bicep
+        run: |
+          az bicep install
+          az bicep build --file budget/main.bicep --outfile "$RUNNER_TEMP/budget.json"
+          az bicep lint --file budget/main.bicep
+      - name: Check the compiled budget and the deploy workflow
+        run: tests/budget.test.sh "$RUNNER_TEMP/budget.json"
