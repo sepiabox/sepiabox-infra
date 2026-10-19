@@ -9,7 +9,7 @@ on:
         default: false
   push:
     branches: [main]
-    paths: ['budget/**', 'shutdown/**', 'automation/**']
+    paths: ['guardrails/**', 'budget/**', 'shutdown/**', 'automation/**']
   # Monthly redeploy renews the anomaly alert's one-year schedule.
   schedule:
     - cron: '17 6 1 * *'
@@ -28,8 +28,29 @@ env:
   ACTION_GROUP: sepiabox-shutdown
 
 jobs:
-  # The budget's 90% notification points at this kill switch, so it goes first.
+  # The policy and the log cap come first, so everything after them is created under the guardrails.
+  guardrails:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy allowed resource types and the Log Analytics cap
+        run: |
+          az deployment group create \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "sepiabox-guardrails-${GITHUB_RUN_ID}" \
+            --template-file guardrails/main.bicep
+
+  # The budget's 90% notification points at this kill switch, so it goes before the budget.
   shutdown:
+    needs: guardrails
     runs-on: ubuntu-latest
     environment: production
     steps:

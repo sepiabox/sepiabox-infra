@@ -16,7 +16,7 @@ jobs:
       - name: Compile and lint Bicep
         run: |
           az bicep install
-          for template in budget shutdown; do
+          for template in budget shutdown guardrails; do
             az bicep build --file "$template/main.bicep" --outfile "$RUNNER_TEMP/$template.json"
             az bicep lint --file "$template/main.bicep"
           done
@@ -24,6 +24,7 @@ jobs:
         run: |
           tests/budget.test.sh "$RUNNER_TEMP/budget.json"
           tests/shutdown.test.sh "$RUNNER_TEMP/shutdown.json"
+          tests/guardrails.test.sh "$RUNNER_TEMP/guardrails.json"
 
   scripts:
     runs-on: ubuntu-latest
