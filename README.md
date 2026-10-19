@@ -20,14 +20,14 @@ The app itself (Container Apps, PostgreSQL, Blob Storage, Service Bus) is descri
 - the `sepiabox-monthly` budget: €50 a month, e-mails at 50%, 80% and 90% of actual cost and when the forecast reaches 100%; at 90% it also starts the kill switch;
 - the `sepiabox-daily-anomaly` alert: a daily e-mail when Cost Management detects unusual spending.
 
-[`deploy.yml`](.github/workflows/deploy.yml) deploys the kill switch and then the budget on every push to `main` that touches `budget/`, `shutdown/` or `automation/`, on demand, and on the 1st of each month (which renews the anomaly alert's one-year schedule). It signs in with OIDC and needs these repository variables, plus a `production` environment:
+[`deploy.yml`](.github/workflows/deploy.yml) deploys the guardrails, the kill switch and then the budget on every push to `main` that touches `guardrails/`, `budget/`, `shutdown/` or `automation/`, on demand, and on the 1st of each month (which renews the anomaly alert's one-year schedule). It signs in with OIDC and needs these repository variables, plus a `production` environment:
 
 | Variable | Value |
 |---|---|
 | `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | Entra ID app with a federated credential for this repository's `production` environment |
 | `BUDGET_ALERT_EMAILS` | Comma-separated e-mail addresses for the alerts |
 
-CI compiles and lints the Bicep, checks the compiled templates ([`tests/budget.test.sh`](tests/budget.test.sh), [`tests/shutdown.test.sh`](tests/shutdown.test.sh)), runs ShellCheck and the runbook's Pester tests on every pull request; it needs no Azure access.
+CI compiles and lints the Bicep, checks the compiled templates ([`tests/budget.test.sh`](tests/budget.test.sh), [`tests/shutdown.test.sh`](tests/shutdown.test.sh), [`tests/guardrails.test.sh`](tests/guardrails.test.sh)), runs ShellCheck and the runbook's Pester tests on every pull request; it needs no Azure access.
 
 ## Kill switch at €45
 
@@ -38,6 +38,13 @@ CI compiles and lints the Bicep, checks the compiled templates ([`tests/budget.t
 - the `budget-90-percent` webhook and the `sepiabox-shutdown` action group that calls it. The budget's 90% notification points at this action group.
 
 The template creates only the runbook's shell; [`scripts/publish-runbook.sh`](scripts/publish-runbook.sh) uploads and publishes its code from the checked-out repository after each deployment, so the repository can be private. A webhook's URL can only be read when it is generated, so the deploy workflow creates the webhook and the action group once and leaves them alone afterwards. Run the workflow by hand with **rotate_webhook** to replace the URL.
+
+## Guardrails
+
+[`guardrails/main.bicep`](guardrails/main.bicep) creates, in `rg-sepiabox`:
+
+- the `sepiabox-allowed-resource-types` assignment of the built-in **Allowed resource types** policy, listing only the services in the architecture (Container Apps, their environment and jobs, PostgreSQL Flexible Server, Storage, Service Bus, Event Grid system topics, Key Vault, Log Analytics, Application Insights, user-assigned identities, Automation, Container Registry, Cognitive Services/Foundry and action groups). Anything else is refused at creation. To allow a new type, add it to the list and to [`tests/guardrails.test.sh`](tests/guardrails.test.sh) in the same pull request;
+- the `sepiabox-logs` Log Analytics workspace, capped at 0.15 GB a day (inside the free 5 GB a month) with 30 days of retention. Its id is the `logAnalyticsWorkspaceId` output, for Application Insights in the app (S-032).
 
 ## Region
 
