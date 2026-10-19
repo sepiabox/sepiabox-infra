@@ -1,0 +1,5 @@
+# Agent worktrees
+.claude/worktrees/
+
+# Compiled Bicep output
+*.json.tmp
