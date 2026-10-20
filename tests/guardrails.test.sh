@@ -27,6 +27,7 @@ expected_types='[
   "Microsoft.App/containerApps",
   "Microsoft.App/jobs",
   "Microsoft.App/managedEnvironments",
+  "Microsoft.App/managedEnvironments/managedCertificates",
   "Microsoft.Automation/automationAccounts",
   "Microsoft.Automation/automationAccounts/runbooks",
   "Microsoft.ContainerRegistry/registries",
