@@ -43,7 +43,7 @@ The template creates only the runbook's shell; [`scripts/publish-runbook.sh`](sc
 
 [`guardrails/main.bicep`](guardrails/main.bicep) creates, in `rg-sepiabox`:
 
-- the `sepiabox-allowed-resource-types` assignment of the built-in **Allowed resource types** policy, listing only the services in the architecture (Container Apps, their environment and jobs, PostgreSQL Flexible Server, Storage, Service Bus, Event Grid system topics, Key Vault, Log Analytics, Application Insights, user-assigned identities, Automation, Container Registry, Cognitive Services/Foundry and action groups). Anything else is refused at creation. To allow a new type, add it to the list and to [`tests/guardrails.test.sh`](tests/guardrails.test.sh) in the same pull request;
+- the `sepiabox-allowed-resource-types` assignment of the built-in **Allowed resource types** policy, listing only the services in the architecture (Container Apps, their environment and jobs, PostgreSQL Flexible Server, Storage, Service Bus, Event Grid system topics, Key Vault, Log Analytics, Application Insights, user-assigned identities, Automation, Container Registry and action groups). Anything else is refused at creation. To allow a new type, add it to the list and to [`tests/guardrails.test.sh`](tests/guardrails.test.sh) in the same pull request;
 - the `sepiabox-logs` Log Analytics workspace, capped at 0.15 GB a day (inside the free 5 GB a month) with 30 days of retention. Its id is the `logAnalyticsWorkspaceId` output, for Application Insights in the app (S-032).
 
 ## Region

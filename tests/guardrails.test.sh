@@ -29,8 +29,6 @@ expected_types='[
   "Microsoft.App/managedEnvironments",
   "Microsoft.Automation/automationAccounts",
   "Microsoft.Automation/automationAccounts/runbooks",
-  "Microsoft.CognitiveServices/accounts",
-  "Microsoft.CognitiveServices/accounts/projects",
   "Microsoft.ContainerRegistry/registries",
   "Microsoft.DBforPostgreSQL/flexibleServers",
   "Microsoft.EventGrid/systemTopics",
