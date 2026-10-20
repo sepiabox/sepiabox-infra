@@ -8,7 +8,7 @@ BeforeAll {
     function Invoke-AzRestMethod { param([string] $Method, [string] $Path, [string] $Payload) }
 
     $script:groupPath = '/subscriptions/sub-1/resourceGroups/rg-sepiabox/providers'
-    $script:queuePath = "$groupPath/Microsoft.ServiceBus/namespaces/sepiabox-sb/queues/manifests?api-version=2024-01-01"
+    $script:queuePath = "$groupPath/Microsoft.ServiceBus/namespaces/sepiabox-bus/queues/manifests?api-version=2024-01-01"
     $script:queueJson = '{"id":"q","name":"manifests","properties":{"maxDeliveryCount":5,"status":"Active"}}'
 }
 
@@ -41,7 +41,7 @@ Describe 'Stop-Sepiabox' {
         }
     }
 
-    It 'disables the sepiabox-sb/manifests queue and keeps its other settings' {
+    It 'disables the sepiabox-bus/manifests queue and keeps its other settings' {
         & $runbook | Out-Null
         Should -Invoke Invoke-AzRestMethod -Times 1 -Exactly -ParameterFilter { $Method -eq 'GET' -and $Path -eq $queuePath }
         Should -Invoke Invoke-AzRestMethod -Times 1 -Exactly -ParameterFilter {

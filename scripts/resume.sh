@@ -6,7 +6,7 @@ RG="${RG:-rg-sepiabox}"
 WEB_APP="${WEB_APP:-sepiabox-web}"
 WEB_PORT="${WEB_PORT:-8080}"
 PG_SERVER="${PG_SERVER:-sepiabox-pg}"
-SB_NAMESPACE="${SB_NAMESPACE:-sepiabox-sb}"
+SB_NAMESPACE="${SB_NAMESPACE:-sepiabox-bus}"
 SB_QUEUE="${SB_QUEUE:-manifests}"
 
 echo "Starting PostgreSQL server $PG_SERVER..."
