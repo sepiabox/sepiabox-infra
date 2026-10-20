@@ -6,7 +6,7 @@ set -euo pipefail
 RG="${RG:-rg-sepiabox}"
 WEB_APP="${WEB_APP:-sepiabox-web}"
 PG_SERVER="${PG_SERVER:-sepiabox-pg}"
-SB_NAMESPACE="${SB_NAMESPACE:-sepiabox-sb}"
+SB_NAMESPACE="${SB_NAMESPACE:-sepiabox-bus}"
 SB_QUEUE="${SB_QUEUE:-manifests}"
 
 echo "Disabling ingress on $WEB_APP..."

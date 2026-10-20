@@ -14,7 +14,7 @@ param(
     [string] $ResourceGroup = 'rg-sepiabox',
     [string] $WebApp = 'sepiabox-web',
     [string] $PostgresServer = 'sepiabox-pg',
-    [string] $ServiceBusNamespace = 'sepiabox-sb',
+    [string] $ServiceBusNamespace = 'sepiabox-bus',
     [string] $Queue = 'manifests'
 )
 

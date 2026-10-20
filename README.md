@@ -34,7 +34,7 @@ CI compiles and lints the Bicep, checks the compiled templates ([`tests/budget.t
 [`shutdown/main.bicep`](shutdown/main.bicep) creates, in `rg-sepiabox`:
 
 - the `sepiabox-automation` Automation account (free tier) with a system-assigned identity that is Contributor on the resource group;
-- the [`Stop-Sepiabox`](automation/Stop-Sepiabox.ps1) runbook (PowerShell 7.2), which disables the ingress of `sepiabox-web`, stops the `sepiabox-pg` PostgreSQL server and disables the `manifests` queue of `sepiabox-sb`;
+- the [`Stop-Sepiabox`](automation/Stop-Sepiabox.ps1) runbook (PowerShell 7.2), which disables the ingress of `sepiabox-web`, stops the `sepiabox-pg` PostgreSQL server and disables the `manifests` queue of `sepiabox-bus`;
 - the `budget-90-percent` webhook and the `sepiabox-shutdown` action group that calls it. The budget's 90% notification points at this action group.
 
 The template creates only the runbook's shell; [`scripts/publish-runbook.sh`](scripts/publish-runbook.sh) uploads and publishes its code from the checked-out repository after each deployment, so the repository can be private. A webhook's URL can only be read when it is generated, so the deploy workflow creates the webhook and the action group once and leaves them alone afterwards. Run the workflow by hand with **rotate_webhook** to replace the URL.
